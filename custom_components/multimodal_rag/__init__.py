@@ -155,7 +155,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         from .db.factory import VectorDBFactory  # noqa: PLC0415
 
         db_provider_name = config.get(CONF_VECTOR_DB_PROVIDER, VECTOR_DB_PROVIDER_QDRANT)
-        storage_path = config.get(CONF_STORAGE_PATH, DEFAULT_STORAGE_PATH)
+        storage_path = hass.config.path(config.get(CONF_STORAGE_PATH, DEFAULT_STORAGE_PATH))
 
         if db_provider_name == VECTOR_DB_PROVIDER_QDRANT:
             vector_db = VectorDBFactory.create(

@@ -11,6 +11,11 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.data_entry_flow import FlowResult
 
 from .const import (
+    CLAUDE_ACCESS_API_KEY,
+    CLAUDE_ACCESS_NONE,
+    CLAUDE_ACCESS_SUBSCRIPTION,
+    CLAUDE_ACCESS_TYPES,
+    CONF_CLAUDE_ACCESS_TYPE,
     CONF_COLLECTION_NAME,
     CONF_EMBEDDING_API_KEY,
     CONF_EMBEDDING_MODEL,
@@ -51,6 +56,7 @@ _LOGGER = logging.getLogger(__name__)
 class MultimodalRAGConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Multi-step config flow for Multimodal RAG.
 
+    Step 0: Claude access type selection
     Step 1: LLM provider choice and credentials
     Step 2: Embedding provider choice
     Step 3: Vector DB configuration
@@ -67,7 +73,7 @@ class MultimodalRAGConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Step 1: LLM provider selection."""
+        """Step 0: Claude access type selection."""
         # Prevent duplicate entries
         await self.async_set_unique_id(DOMAIN)
         self._abort_if_unique_id_configured()
@@ -76,20 +82,22 @@ class MultimodalRAGConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             self._config.update(user_input)
-            return await self.async_step_embedding_provider()
+            claude_access = user_input.get(CONF_CLAUDE_ACCESS_TYPE)
 
+            if claude_access == CLAUDE_ACCESS_NONE:
+                # Skip Claude, go directly to LLM choice (Ollama only)
+                self._config[CONF_LLM_PROVIDER] = LLM_PROVIDER_OLLAMA
+                return await self.async_step_embedding_provider()
+            else:
+                # Has Claude access, configure LLM with Claude
+                return await self.async_step_llm_config()
+
+        # Show Claude access type selection
         schema = vol.Schema(
             {
-                vol.Required(CONF_LLM_PROVIDER, default=DEFAULT_LLM_PROVIDER): vol.In(
-                    [LLM_PROVIDER_CLAUDE, LLM_PROVIDER_OLLAMA]
+                vol.Required(CONF_CLAUDE_ACCESS_TYPE, default=CLAUDE_ACCESS_API_KEY): vol.In(
+                    CLAUDE_ACCESS_TYPES
                 ),
-                vol.Optional(CONF_LLM_API_KEY, default=""): str,
-                vol.Optional(
-                    CONF_LLM_MODEL, default=DEFAULT_LLM_MODEL_CLAUDE
-                ): str,
-                vol.Optional(
-                    CONF_LLM_BASE_URL, default=DEFAULT_OLLAMA_BASE_URL
-                ): str,
             }
         )
 
@@ -99,7 +107,40 @@ class MultimodalRAGConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors=errors,
             description_placeholders={
                 "claude_url": "https://console.anthropic.com",
-                "ollama_url": "https://ollama.ai",
+            },
+        )
+
+    async def async_step_llm_config(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Step 1: LLM configuration with Claude API Key."""
+        errors: dict[str, str] = {}
+        claude_access = self._config.get(CONF_CLAUDE_ACCESS_TYPE)
+
+        if user_input is not None:
+            self._config.update(user_input)
+            self._config[CONF_LLM_PROVIDER] = LLM_PROVIDER_CLAUDE
+            return await self.async_step_embedding_provider()
+
+        # Show API Key input based on access type
+        access_label = "API Key" if claude_access == CLAUDE_ACCESS_API_KEY else "Subscription Access"
+
+        schema = vol.Schema(
+            {
+                vol.Required(CONF_LLM_API_KEY, default=""): str,
+                vol.Optional(
+                    CONF_LLM_MODEL, default=DEFAULT_LLM_MODEL_CLAUDE
+                ): str,
+            }
+        )
+
+        return self.async_show_form(
+            step_id="llm_config",
+            data_schema=schema,
+            errors=errors,
+            description_placeholders={
+                "claude_url": "https://console.anthropic.com",
+                "access_type": access_label,
             },
         )
 
@@ -181,8 +222,10 @@ class MultimodalRAGConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             storage_path = user_input.get(CONF_STORAGE_PATH, DEFAULT_STORAGE_PATH)
             # Validate that we can create/access the path
             try:
-                os.makedirs(storage_path, exist_ok=True)
-                test_file = os.path.join(storage_path, ".ha_rag_write_test")
+                # Resolve relative paths using Home Assistant config directory
+                abs_storage_path = self.hass.config.path(storage_path)
+                os.makedirs(abs_storage_path, exist_ok=True)
+                test_file = os.path.join(abs_storage_path, ".ha_rag_write_test")
                 with open(test_file, "w") as f:
                     f.write("test")
                 os.remove(test_file)

@@ -13,6 +13,7 @@ CONF_LLM_PROVIDER: Final = "llm_provider"
 CONF_LLM_MODEL: Final = "llm_model"
 CONF_LLM_API_KEY: Final = "llm_api_key"
 CONF_LLM_BASE_URL: Final = "llm_base_url"
+CONF_CLAUDE_ACCESS_TYPE: Final = "claude_access_type"
 CONF_EMBEDDING_PROVIDER: Final = "embedding_provider"
 CONF_EMBEDDING_MODEL: Final = "embedding_model"
 CONF_EMBEDDING_API_KEY: Final = "embedding_api_key"
@@ -27,6 +28,12 @@ CONF_COLLECTION_NAME: Final = "collection_name"
 LLM_PROVIDER_CLAUDE: Final = "claude"
 LLM_PROVIDER_OLLAMA: Final = "ollama"
 LLM_PROVIDERS: Final = [LLM_PROVIDER_CLAUDE, LLM_PROVIDER_OLLAMA]
+
+# Claude access types
+CLAUDE_ACCESS_API_KEY: Final = "api_key"
+CLAUDE_ACCESS_SUBSCRIPTION: Final = "subscription"
+CLAUDE_ACCESS_NONE: Final = "none"
+CLAUDE_ACCESS_TYPES: Final = [CLAUDE_ACCESS_API_KEY, CLAUDE_ACCESS_SUBSCRIPTION, CLAUDE_ACCESS_NONE]
 
 EMBEDDING_PROVIDER_CLAUDE: Final = "claude"
 EMBEDDING_PROVIDER_SENTENCE_TRANSFORMERS: Final = "sentence_transformers"
@@ -46,7 +53,7 @@ DEFAULT_EMBEDDING_MODEL_ST: Final = "all-MiniLM-L6-v2"
 DEFAULT_VECTOR_DB_PROVIDER: Final = VECTOR_DB_PROVIDER_QDRANT
 DEFAULT_VECTOR_DB_HOST: Final = "localhost"
 DEFAULT_VECTOR_DB_PORT: Final = 6333
-DEFAULT_STORAGE_PATH: Final = "/config/multimodal_rag"
+DEFAULT_STORAGE_PATH: Final = "multimodal_rag"
 DEFAULT_COLLECTION_NAME: Final = "documents"
 DEFAULT_OLLAMA_BASE_URL: Final = "http://localhost:11434"
 
