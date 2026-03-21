@@ -2,9 +2,9 @@
   "domain": "multimodal_rag",
   "name": "Multimodal RAG",
   "version": "1.0.0",
-  "documentation": "https://github.com/yourusername/ha-multimodal-rag",
-  "issue_tracker": "https://github.com/yourusername/ha-multimodal-rag/issues",
-  "codeowners": ["@yourusername"],
+  "documentation": "https://github.com/magicx78/ha-multimodal-rag",
+  "issue_tracker": "https://github.com/magicx78/ha-multimodal-rag/issues",
+  "codeowners": ["@magicx78"],
   "requirements": [
     "aiohttp>=3.9.0",
     "aiofiles>=23.0.0",
