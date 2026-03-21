@@ -6,12 +6,32 @@ Intelligente Dokumentenverarbeitung mit Claude-powered semantic search und reaso
 
 ## ⚡ Quick Install
 
-[![Install in Home Assistant](https://my.home-assistant.io/badges/developer_call_service.svg)](https://my.home-assistant.io/redirect/developer_call_service/?service=homeassistant.restart)
+### Option 1: Automatische Installation (Linux/macOS Terminal)
 
-**Manual Installation:**
-1. Copy `custom_components/multimodal_rag` to `~/.homeassistant/custom_components/`
-2. Restart Home Assistant
-3. Go to **Settings → Devices & Services** → Find "Multimodal RAG" → Install
+```bash
+# 1. Clone oder Download
+git clone https://github.com/magicx78/ha-multimodal-rag.git ~/ha-multimodal-rag
+# ODER: Download ZIP von https://github.com/magicx78/ha-multimodal-rag/archive/refs/heads/main.zip
+
+# 2. Kopiere Integration
+cp -r ~/ha-multimodal-rag/custom_components/multimodal_rag ~/.homeassistant/custom_components/
+
+# 3. Starte Home Assistant neu
+# → Settings → System → Restart
+```
+
+### Option 2: Manuelle Installation
+
+1. **Lade herunter:** https://github.com/magicx78/ha-multimodal-rag/archive/refs/heads/main.zip
+2. **Entpacke** die ZIP-Datei
+3. **Kopiere** Ordner `custom_components/multimodal_rag` zu `~/.homeassistant/custom_components/`
+4. **Starte Home Assistant neu:** Settings → System → Restart
+5. **Gehe zu:** Settings → Devices & Services → Suche "Multimodal RAG" → Install
+
+### Danach: Konfiguration
+
+- **Claude API Key hinzufügen** (Settings → Devices & Services → Multimodal RAG → Options)
+- **Oder** Optionen in Config-Wizard wählen (LLM, Embedding, Vector DB)
 
 ---
 
