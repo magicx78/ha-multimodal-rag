@@ -2,6 +2,19 @@
 
 Intelligente Dokumentenverarbeitung mit Claude-powered semantic search und reasoning für dein Smart Home.
 
+---
+
+## ⚡ Quick Install
+
+[![Install in Home Assistant](https://my.home-assistant.io/badges/developer_call_service.svg)](https://my.home-assistant.io/redirect/developer_call_service/?service=homeassistant.restart)
+
+**Manual Installation:**
+1. Copy `custom_components/multimodal_rag` to `~/.homeassistant/custom_components/`
+2. Restart Home Assistant
+3. Go to **Settings → Devices & Services** → Find "Multimodal RAG" → Install
+
+---
+
 ## Features
 
 ### 📄 Document Support
