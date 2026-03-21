@@ -1,0 +1,147 @@
+{
+  "config": {
+    "step": {
+      "llm_provider": {
+        "title": "LLM Provider Configuration",
+        "description": "Choose your Large Language Model provider for reasoning and generation.",
+        "data": {
+          "llm_provider": "LLM Provider",
+          "llm_model": "Model Name",
+          "llm_api_key": "API Key",
+          "llm_base_url": "Base URL (Ollama only)"
+        }
+      },
+      "embedding_provider": {
+        "title": "Embedding Provider Configuration",
+        "description": "Choose how to generate vector embeddings for your documents.",
+        "data": {
+          "embedding_provider": "Embedding Provider",
+          "embedding_model": "Embedding Model",
+          "embedding_api_key": "API Key (if required)"
+        }
+      },
+      "vector_db": {
+        "title": "Vector Database Configuration",
+        "description": "Configure the vector database for storing and searching embeddings.",
+        "data": {
+          "vector_db_provider": "Vector DB Provider",
+          "vector_db_host": "Host",
+          "vector_db_port": "Port",
+          "vector_db_api_key": "API Key (optional)"
+        }
+      },
+      "storage": {
+        "title": "Document Storage Configuration",
+        "description": "Set the path where uploaded documents will be stored.",
+        "data": {
+          "storage_path": "Storage Path",
+          "collection_name": "Default Collection Name"
+        }
+      },
+      "test_connections": {
+        "title": "Testing Connections",
+        "description": "Verifying configuration and testing all connections..."
+      }
+    },
+    "error": {
+      "cannot_connect": "Cannot connect to the specified service. Please check host/port.",
+      "invalid_api_key": "Invalid API key provided.",
+      "invalid_path": "The storage path is not accessible or writable.",
+      "unknown": "An unknown error occurred.",
+      "llm_connection_failed": "Failed to connect to LLM provider.",
+      "embedding_connection_failed": "Failed to connect to embedding provider.",
+      "vector_db_connection_failed": "Failed to connect to vector database."
+    },
+    "abort": {
+      "already_configured": "Multimodal RAG is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Multimodal RAG Options",
+        "data": {
+          "llm_model": "LLM Model",
+          "embedding_model": "Embedding Model",
+          "storage_path": "Storage Path",
+          "collection_name": "Default Collection Name"
+        }
+      }
+    }
+  },
+  "services": {
+    "upload_document": {
+      "name": "Upload Document",
+      "description": "Upload and index a document into the RAG system.",
+      "fields": {
+        "file_path": {
+          "name": "File Path",
+          "description": "Absolute path to the document file to upload."
+        },
+        "collection": {
+          "name": "Collection",
+          "description": "Target collection name (optional, uses default if not set)."
+        },
+        "metadata": {
+          "name": "Metadata",
+          "description": "Additional metadata to store with the document (optional)."
+        }
+      }
+    },
+    "search": {
+      "name": "Search Documents",
+      "description": "Search for documents similar to the given query.",
+      "fields": {
+        "query": {
+          "name": "Query",
+          "description": "The search query text."
+        },
+        "collection": {
+          "name": "Collection",
+          "description": "Collection to search in (optional)."
+        },
+        "top_k": {
+          "name": "Top K",
+          "description": "Number of results to return."
+        }
+      }
+    },
+    "reason": {
+      "name": "Reason over Documents",
+      "description": "Ask a question and get an LLM-reasoned answer based on indexed documents.",
+      "fields": {
+        "query": {
+          "name": "Question",
+          "description": "The question to answer using the document knowledge base."
+        },
+        "collection": {
+          "name": "Collection",
+          "description": "Collection to search in (optional)."
+        },
+        "top_k": {
+          "name": "Context Documents",
+          "description": "Number of context documents to retrieve."
+        }
+      }
+    },
+    "list_collections": {
+      "name": "List Collections",
+      "description": "List all available document collections.",
+      "fields": {}
+    },
+    "delete_document": {
+      "name": "Delete Document",
+      "description": "Delete a document from the RAG system.",
+      "fields": {
+        "document_id": {
+          "name": "Document ID",
+          "description": "The unique identifier of the document to delete."
+        },
+        "collection": {
+          "name": "Collection",
+          "description": "Collection containing the document (optional)."
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "domain": "multimodal_rag",
+  "name": "Multimodal RAG",
+  "version": "1.0.0",
+  "documentation": "https://github.com/yourusername/ha-multimodal-rag",
+  "issue_tracker": "https://github.com/yourusername/ha-multimodal-rag/issues",
+  "codeowners": ["@yourusername"],
+  "requirements": [
+    "aiohttp>=3.9.0",
+    "aiofiles>=23.0.0",
+    "anthropic>=0.21.0",
+    "qdrant-client>=1.7.0",
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+    "PyMuPDF>=1.23.8",
+    "Pillow>=10.0.0",
+    "tiktoken>=0.5.0",
+    "sentence-transformers>=2.2.0",
+    "ollama>=0.1.0"
+  ],
+  "dependencies": [],
+  "after_dependencies": [],
+  "config_flow": true,
+  "iot_class": "local_polling",
+  "integration_type": "service"
+}

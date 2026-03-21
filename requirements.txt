@@ -1,0 +1,35 @@
+# Core Home Assistant (must be installed separately)
+# homeassistant>=2024.1.0
+
+# Async utilities
+aiohttp>=3.9.0
+aiofiles>=23.0.0
+
+# LLM providers
+anthropic>=0.21.0
+ollama>=0.1.0
+
+# Vector database
+qdrant-client>=1.7.0
+
+# Data validation
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+
+# Document processing
+PyMuPDF>=1.23.8          # PDF processing (fitz)
+Pillow>=10.0.0           # Image processing
+
+# Embeddings
+sentence-transformers>=2.2.0
+tiktoken>=0.5.0
+
+# Audio/Video (skeleton — install for future use)
+# librosa>=0.10.0
+# moviepy>=1.0.3
+# openai-whisper>=20231117
+
+# Testing
+pytest>=7.0.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.0.0
