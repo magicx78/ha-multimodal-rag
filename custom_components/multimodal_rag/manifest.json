@@ -1,7 +1,7 @@
 {
   "domain": "multimodal_rag",
   "name": "Multimodal RAG",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "documentation": "https://github.com/magicx78/ha-multimodal-rag",
   "issue_tracker": "https://github.com/magicx78/ha-multimodal-rag/issues",
   "codeowners": ["@magicx78"],
