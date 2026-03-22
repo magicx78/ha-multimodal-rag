@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Multimodal RAG</title>
+  <style>
+    :root {
+      --bg: #111827;
+      --surface: #1f2937;
+      --surface2: #374151;
+      --border: #374151;
+      --accent: #6366f1;
+      --accent-hover: #818cf8;
+      --danger: #ef4444;
+      --success: #22c55e;
+      --text: #f9fafb;
+      --text-muted: #9ca3af;
+      --radius: 8px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; min-height: 100vh; }
+
+    /* ── Auth overlay ── */
+    #auth-overlay {
+      position: fixed; inset: 0; background: var(--bg);
+      display: flex; align-items: center; justify-content: center; z-index: 100;
+    }
+    #auth-overlay.hidden { display: none; }
+    .auth-card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 32px; max-width: 420px; width: 100%;
+    }
+    .auth-card h2 { margin-bottom: 8px; font-size: 18px; }
+    .auth-card p { color: var(--text-muted); margin-bottom: 20px; line-height: 1.5; }
+    .auth-card a { color: var(--accent-hover); }
+
+    /* ── Layout ── */
+    .app { display: flex; flex-direction: column; height: 100vh; }
+    header {
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      padding: 12px 20px; display: flex; align-items: center; gap: 12px;
+    }
+    header h1 { font-size: 16px; font-weight: 600; }
+    .badge {
+      background: var(--accent); border-radius: 4px; padding: 2px 8px;
+      font-size: 11px; font-weight: 700; letter-spacing: .5px;
+    }
+    .spacer { flex: 1; }
+    .btn-icon {
+      background: none; border: none; color: var(--text-muted); cursor: pointer;
+      font-size: 18px; padding: 4px 8px; border-radius: 4px;
+    }
+    .btn-icon:hover { background: var(--surface2); color: var(--text); }
+
+    /* ── Tabs ── */
+    .tabs {
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      display: flex; padding: 0 20px;
+    }
+    .tab {
+      background: none; border: none; color: var(--text-muted); cursor: pointer;
+      font-size: 13px; font-weight: 500; padding: 12px 16px; border-bottom: 2px solid transparent;
+    }
+    .tab:hover { color: var(--text); }
+    .tab.active { color: var(--accent-hover); border-bottom-color: var(--accent); }
+
+    /* ── Main ── */
+    main { flex: 1; overflow-y: auto; padding: 24px 20px; max-width: 900px; width: 100%; margin: 0 auto; }
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    /* ── Form elements ── */
+    label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px; font-weight: 500; }
+    input[type=text], input[type=password], input[type=number], select, textarea {
+      background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius);
+      color: var(--text); font-size: 14px; padding: 8px 12px; width: 100%; outline: none;
+    }
+    input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+    textarea { resize: vertical; min-height: 80px; font-family: inherit; }
+    .field { margin-bottom: 16px; }
+    .row { display: flex; gap: 12px; }
+    .row .field { flex: 1; }
+
+    /* ── Buttons ── */
+    .btn {
+      background: var(--accent); border: none; border-radius: var(--radius); color: #fff;
+      cursor: pointer; font-size: 14px; font-weight: 600; padding: 9px 20px;
+    }
+    .btn:hover { background: var(--accent-hover); }
+    .btn:disabled { opacity: .45; cursor: default; }
+    .btn-danger { background: var(--danger); }
+    .btn-danger:hover { background: #f87171; }
+    .btn-sm { padding: 5px 12px; font-size: 12px; }
+    .btn-outline {
+      background: none; border: 1px solid var(--border); color: var(--text-muted);
+      border-radius: var(--radius); cursor: pointer; font-size: 14px; padding: 8px 16px;
+    }
+    .btn-outline:hover { border-color: var(--accent); color: var(--text); }
+
+    /* ── Drop-zone ── */
+    #drop-zone {
+      border: 2px dashed var(--border); border-radius: var(--radius);
+      padding: 40px 20px; text-align: center; cursor: pointer; transition: border-color .2s;
+      margin-bottom: 16px;
+    }
+    #drop-zone.drag-over { border-color: var(--accent); background: rgba(99,102,241,.08); }
+    #drop-zone p { color: var(--text-muted); margin-top: 8px; font-size: 13px; }
+    #drop-zone .icon { font-size: 36px; }
+    #file-input { display: none; }
+    #file-list { margin-bottom: 16px; }
+    .file-tag {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--surface2); border-radius: 4px; padding: 3px 10px;
+      font-size: 12px; margin: 3px;
+    }
+    .file-tag button { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 14px; }
+
+    /* ── Progress ── */
+    .progress-wrap { background: var(--surface2); border-radius: 4px; height: 6px; margin: 12px 0; overflow: hidden; }
+    .progress-bar { background: var(--accent); height: 100%; width: 0; transition: width .3s; }
+
+    /* ── Cards / Result items ── */
+    .card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 16px; margin-bottom: 12px;
+    }
+    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .score-badge {
+      background: var(--surface2); border-radius: 4px; padding: 2px 8px;
+      font-size: 11px; font-weight: 700; color: var(--accent-hover);
+    }
+    .source-label { font-size: 11px; color: var(--text-muted); margin-bottom: 6px; }
+    .result-text { font-size: 13px; line-height: 1.6; color: var(--text-muted); white-space: pre-wrap; }
+
+    /* ── Answer box ── */
+    .answer-box {
+      background: var(--surface); border-left: 3px solid var(--accent);
+      border-radius: var(--radius); padding: 16px; margin-bottom: 20px;
+      white-space: pre-wrap; line-height: 1.7;
+    }
+
+    /* ── Table ── */
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { text-align: left; padding: 8px 12px; color: var(--text-muted); border-bottom: 1px solid var(--border); font-weight: 500; }
+    td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--surface2); }
+    .type-badge {
+      background: var(--surface2); border-radius: 4px; padding: 2px 7px;
+      font-size: 11px; text-transform: uppercase; letter-spacing: .4px;
+    }
+
+    /* ── Alert ── */
+    .alert {
+      border-radius: var(--radius); padding: 10px 14px; margin-bottom: 14px; font-size: 13px;
+    }
+    .alert-success { background: rgba(34,197,94,.12); border: 1px solid rgba(34,197,94,.3); color: var(--success); }
+    .alert-error   { background: rgba(239,68,68,.12);  border: 1px solid rgba(239,68,68,.3);  color: var(--danger); }
+    .alert-info    { background: rgba(99,102,241,.12); border: 1px solid rgba(99,102,241,.3); color: var(--accent-hover); }
+
+    /* ── Spinner ── */
+    .spinner {
+      display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,.3);
+      border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Misc ── */
+    .section-title { font-size: 13px; font-weight: 600; color: var(--text-muted); margin-bottom: 12px; text-transform: uppercase; letter-spacing: .5px; }
+    .empty { text-align: center; color: var(--text-muted); padding: 40px; }
+    .mt-8  { margin-top: 8px; }
+    .mt-16 { margin-top: 16px; }
+    .flex-center { display: flex; align-items: center; gap: 8px; }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════
+     AUTH OVERLAY
+══════════════════════════════════════════════════════ -->
+<div id="auth-overlay">
+  <div class="auth-card">
+    <h2>🔐 Multimodal RAG</h2>
+    <p>
+      Gib deinen <strong>Long-Lived Access Token</strong> ein.<br/>
+      <a href="/profile" target="_parent">Profil → Langlebige Zugriffs-Tokens</a> → Token erstellen.
+    </p>
+    <div class="field">
+      <label>Access Token</label>
+      <input type="password" id="token-input" placeholder="eyJ0eXAiOiJKV1QiLCJhbGci..."/>
+    </div>
+    <button class="btn" onclick="saveToken()">Verbinden</button>
+    <div id="auth-error" style="margin-top:10px;font-size:13px;color:var(--danger);"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     APP SHELL
+══════════════════════════════════════════════════════ -->
+<div class="app">
+  <header>
+    <h1>Multimodal RAG</h1>
+    <span class="badge">HA Panel</span>
+    <span class="spacer"></span>
+    <span id="db-stats" style="font-size:12px;color:var(--text-muted);"></span>
+    <button class="btn-icon" title="Ausloggen (Token löschen)" onclick="logout()">⏏</button>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('upload',this)">📤 Upload &amp; Einbetten</button>
+    <button class="tab" onclick="switchTab('search',this)">🔍 Suchen</button>
+    <button class="tab" onclick="switchTab('browse',this)">📚 Dokumente</button>
+  </div>
+
+  <main>
+
+    <!-- ── UPLOAD TAB ──────────────────────────────────── -->
+    <div id="tab-upload" class="panel active">
+      <div id="drop-zone" onclick="document.getElementById('file-input').click()"
+           ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
+        <div class="icon">📁</div>
+        <strong>Dateien hier ablegen</strong>
+        <p>oder klicken, um Dateien auszuwählen</p>
+        <p style="font-size:11px;margin-top:6px;">txt, md, pdf, jpg, jpeg, png, gif, webp, mp3, wav, mp4</p>
+      </div>
+      <input type="file" id="file-input" multiple
+        accept=".txt,.md,.rst,.csv,.json,.pdf,.jpg,.jpeg,.png,.gif,.webp,.bmp,.tiff,.mp3,.wav,.flac,.ogg,.m4a,.mp4,.avi,.mkv,.mov"
+        onchange="onFileSelect(event)"/>
+
+      <div id="file-list"></div>
+
+      <div class="row">
+        <div class="field">
+          <label>Collection</label>
+          <select id="upload-collection"><option value="documents">documents</option></select>
+        </div>
+        <div class="field" style="display:flex;align-items:flex-end;">
+          <button class="btn" id="upload-btn" onclick="startUpload()" disabled>Hochladen &amp; Einbetten</button>
+        </div>
+      </div>
+
+      <div id="upload-progress" style="display:none;">
+        <div class="progress-wrap"><div class="progress-bar" id="prog-bar"></div></div>
+        <div id="upload-status" style="font-size:12px;color:var(--text-muted);"></div>
+      </div>
+
+      <div id="upload-results" style="margin-top:16px;"></div>
+    </div>
+
+    <!-- ── SEARCH TAB ──────────────────────────────────── -->
+    <div id="tab-search" class="panel">
+      <div class="field">
+        <label>Suchanfrage</label>
+        <textarea id="search-query" rows="3" placeholder="Was möchtest du wissen?"></textarea>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label>Collection</label>
+          <select id="search-collection"><option value="documents">documents</option></select>
+        </div>
+        <div class="field">
+          <label>Top-K</label>
+          <input type="number" id="search-topk" value="5" min="1" max="50"/>
+        </div>
+        <div class="field">
+          <label>Min. Score (0–1)</label>
+          <input type="number" id="search-threshold" value="0.0" min="0" max="1" step="0.05"/>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-bottom:20px;">
+        <button class="btn" onclick="doSearch()">Suchen</button>
+        <button class="btn-outline" onclick="doReason()">KI-Antwort (RAG)</button>
+      </div>
+
+      <div id="search-results"></div>
+    </div>
+
+    <!-- ── BROWSE TAB ──────────────────────────────────── -->
+    <div id="tab-browse" class="panel">
+      <div style="display:flex;gap:12px;align-items:flex-end;margin-bottom:20px;">
+        <div class="field" style="flex:1;margin-bottom:0;">
+          <label>Collection</label>
+          <select id="browse-collection" onchange="loadDocuments()"><option value="documents">documents</option></select>
+        </div>
+        <button class="btn-outline" onclick="loadDocuments()">↻ Aktualisieren</button>
+      </div>
+
+      <div id="browse-results"></div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════
+//  State
+// ══════════════════════════════════════════════════════
+let TOKEN = localStorage.getItem('mrag_token') || '';
+let pendingFiles = [];
+
+const BASE = '/api/multimodal_rag';
+
+// ══════════════════════════════════════════════════════
+//  Boot
+// ══════════════════════════════════════════════════════
+(async () => {
+  if (TOKEN) await init();
+})();
+
+async function init() {
+  try {
+    const r = await api('GET', '/collections');
+    document.getElementById('auth-overlay').classList.add('hidden');
+    populateCollections(r.collections || []);
+    updateStats(r.collections || []);
+  } catch (e) {
+    TOKEN = '';
+    document.getElementById('auth-overlay').classList.remove('hidden');
+  }
+}
+
+// ══════════════════════════════════════════════════════
+//  Auth
+// ══════════════════════════════════════════════════════
+async function saveToken() {
+  TOKEN = document.getElementById('token-input').value.trim();
+  if (!TOKEN) return;
+  try {
+    await api('GET', '/collections');
+    localStorage.setItem('mrag_token', TOKEN);
+    await init();
+  } catch (e) {
+    document.getElementById('auth-error').textContent = 'Token ungültig oder Server nicht erreichbar.';
+    TOKEN = '';
+  }
+}
+
+function logout() {
+  localStorage.removeItem('mrag_token');
+  TOKEN = '';
+  location.reload();
+}
+
+// ══════════════════════════════════════════════════════
+//  API helper
+// ══════════════════════════════════════════════════════
+async function api(method, path, body = null, formData = null) {
+  const opts = {
+    method,
+    headers: { Authorization: 'Bearer ' + TOKEN },
+  };
+  if (formData) {
+    opts.body = formData;
+  } else if (body) {
+    opts.headers['Content-Type'] = 'application/json';
+    opts.body = JSON.stringify(body);
+  }
+  const res = await fetch(BASE + path, opts);
+  if (!res.ok) {
+    let msg = `HTTP ${res.status}`;
+    try { const d = await res.json(); msg = d.error || msg; } catch (_) {}
+    throw new Error(msg);
+  }
+  return res.json();
+}
+
+// ══════════════════════════════════════════════════════
+//  Collections
+// ══════════════════════════════════════════════════════
+function populateCollections(cols) {
+  if (!cols.length) cols = ['documents'];
+  ['upload-collection', 'search-collection', 'browse-collection'].forEach(id => {
+    const sel = document.getElementById(id);
+    const cur = sel.value;
+    sel.innerHTML = cols.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+    if (cols.includes(cur)) sel.value = cur;
+  });
+}
+
+async function updateStats(cols) {
+  document.getElementById('db-stats').textContent =
+    `${cols.length} Collection${cols.length !== 1 ? 's' : ''}`;
+}
+
+// ══════════════════════════════════════════════════════
+//  Tabs
+// ══════════════════════════════════════════════════════
+function switchTab(name, btn) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+  if (name === 'browse') loadDocuments();
+}
+
+// ══════════════════════════════════════════════════════
+//  Upload
+// ══════════════════════════════════════════════════════
+function onDragOver(e) { e.preventDefault(); document.getElementById('drop-zone').classList.add('drag-over'); }
+function onDragLeave(e) { document.getElementById('drop-zone').classList.remove('drag-over'); }
+function onDrop(e) {
+  e.preventDefault();
+  onDragLeave(e);
+  addFiles([...e.dataTransfer.files]);
+}
+function onFileSelect(e) { addFiles([...e.target.files]); e.target.value = ''; }
+
+function addFiles(files) {
+  files.forEach(f => { if (!pendingFiles.find(p => p.name === f.name)) pendingFiles.push(f); });
+  renderFileList();
+}
+
+function removeFile(name) {
+  pendingFiles = pendingFiles.filter(f => f.name !== name);
+  renderFileList();
+}
+
+function renderFileList() {
+  const el = document.getElementById('file-list');
+  el.innerHTML = pendingFiles.map(f => `
+    <span class="file-tag">
+      ${esc(f.name)}
+      <button onclick="removeFile('${esc(f.name)}')" title="Entfernen">✕</button>
+    </span>`).join('');
+  document.getElementById('upload-btn').disabled = pendingFiles.length === 0;
+}
+
+async function startUpload() {
+  if (!pendingFiles.length) return;
+  const btn = document.getElementById('upload-btn');
+  const collection = document.getElementById('upload-collection').value;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Wird hochgeladen…';
+
+  const progWrap = document.getElementById('upload-progress');
+  const bar = document.getElementById('prog-bar');
+  const status = document.getElementById('upload-status');
+  const resultsEl = document.getElementById('upload-results');
+  progWrap.style.display = 'block';
+  resultsEl.innerHTML = '';
+
+  const results = [];
+  for (let i = 0; i < pendingFiles.length; i++) {
+    const file = pendingFiles[i];
+    const pct = Math.round((i / pendingFiles.length) * 100);
+    bar.style.width = pct + '%';
+    status.textContent = `Datei ${i + 1}/${pendingFiles.length}: ${file.name}`;
+
+    try {
+      const fd = new FormData();
+      fd.append('file', file, file.name);
+      fd.append('collection', collection);
+      const r = await api('POST', '/upload', null, fd);
+      results.push({ name: file.name, ok: r.success, chunks: r.chunk_count, type: r.document_type, error: r.error });
+    } catch (e) {
+      results.push({ name: file.name, ok: false, error: e.message });
+    }
+  }
+
+  bar.style.width = '100%';
+  status.textContent = 'Fertig!';
+
+  resultsEl.innerHTML = results.map(r => `
+    <div class="alert ${r.ok ? 'alert-success' : 'alert-error'}">
+      ${r.ok
+        ? `✓ <strong>${esc(r.name)}</strong> — ${r.chunks} Chunks (${esc(r.type || '-')})`
+        : `✗ <strong>${esc(r.name)}</strong> — ${esc(r.error || 'Fehler')}`}
+    </div>`).join('');
+
+  pendingFiles = [];
+  renderFileList();
+  btn.disabled = false;
+  btn.textContent = 'Hochladen & Einbetten';
+
+  // Refresh collections
+  try {
+    const c = await api('GET', '/collections');
+    populateCollections(c.collections || []);
+    updateStats(c.collections || []);
+  } catch (_) {}
+}
+
+// ══════════════════════════════════════════════════════
+//  Search
+// ══════════════════════════════════════════════════════
+async function doSearch() {
+  const query = document.getElementById('search-query').value.trim();
+  if (!query) return;
+  const collection = document.getElementById('search-collection').value;
+  const top_k = parseInt(document.getElementById('search-topk').value) || 5;
+  const score_threshold = parseFloat(document.getElementById('search-threshold').value) || 0.0;
+  const el = document.getElementById('search-results');
+  el.innerHTML = '<div class="alert alert-info"><span class="spinner"></span> Suche läuft…</div>';
+  try {
+    const r = await api('POST', '/search', { query, collection, top_k, score_threshold });
+    if (!r.results.length) { el.innerHTML = '<div class="empty">Keine Ergebnisse gefunden.</div>'; return; }
+    el.innerHTML = r.results.map((res, i) => `
+      <div class="card">
+        <div class="card-header">
+          <span class="section-title">#${i + 1}</span>
+          <span class="score-badge">Score: ${res.score}</span>
+        </div>
+        <div class="source-label">📄 ${esc(res.source_file || res.id)}</div>
+        <div class="result-text">${esc(res.text)}</div>
+      </div>`).join('');
+  } catch (e) {
+    el.innerHTML = `<div class="alert alert-error">Fehler: ${esc(e.message)}</div>`;
+  }
+}
+
+async function doReason() {
+  const query = document.getElementById('search-query').value.trim();
+  if (!query) return;
+  const collection = document.getElementById('search-collection').value;
+  const top_k = parseInt(document.getElementById('search-topk').value) || 5;
+  const score_threshold = parseFloat(document.getElementById('search-threshold').value) || 0.0;
+  const el = document.getElementById('search-results');
+  el.innerHTML = '<div class="alert alert-info"><span class="spinner"></span> KI denkt nach…</div>';
+  try {
+    const r = await api('POST', '/reason', { query, collection, top_k, score_threshold });
+    el.innerHTML = `
+      <div class="section-title">KI-Antwort (${esc(r.model || r.provider || '-')})</div>
+      <div class="answer-box">${esc(r.answer)}</div>
+      ${r.sources && r.sources.length ? `
+        <div class="section-title mt-16">Quellen</div>
+        ${r.sources.map(s => `<div class="card"><div class="source-label">📄 ${esc(s)}</div></div>`).join('')}` : ''}`;
+  } catch (e) {
+    el.innerHTML = `<div class="alert alert-error">Fehler: ${esc(e.message)}</div>`;
+  }
+}
+
+// ══════════════════════════════════════════════════════
+//  Browse
+// ══════════════════════════════════════════════════════
+async function loadDocuments() {
+  const collection = document.getElementById('browse-collection').value;
+  const el = document.getElementById('browse-results');
+  el.innerHTML = '<div class="alert alert-info"><span class="spinner"></span> Lade Dokumente…</div>';
+  try {
+    const r = await api('GET', `/documents?collection=${encodeURIComponent(collection)}`);
+    if (!r.documents.length) { el.innerHTML = '<div class="empty">Keine Dokumente in dieser Collection.</div>'; return; }
+    el.innerHTML = `
+      <table>
+        <thead><tr>
+          <th>Dateiname</th><th>Typ</th><th>Chunks</th><th>Doc-ID</th><th></th>
+        </tr></thead>
+        <tbody>
+          ${r.documents.map(d => `
+            <tr>
+              <td>${esc(basename(d.source_file))}</td>
+              <td><span class="type-badge">${esc(d.document_type)}</span></td>
+              <td>${d.chunk_count}</td>
+              <td style="font-family:monospace;font-size:11px;color:var(--text-muted);">${esc(d.document_id.substring(0,8))}…</td>
+              <td>
+                <button class="btn btn-danger btn-sm"
+                  onclick="deleteDoc('${esc(d.document_id)}','${esc(collection)}',this)">
+                  Löschen
+                </button>
+              </td>
+            </tr>`).join('')}
+        </tbody>
+      </table>`;
+  } catch (e) {
+    el.innerHTML = `<div class="alert alert-error">Fehler: ${esc(e.message)}</div>`;
+  }
+}
+
+async function deleteDoc(doc_id, collection, btn) {
+  if (!confirm('Dokument wirklich löschen?')) return;
+  btn.disabled = true; btn.textContent = '…';
+  try {
+    await api('DELETE', `/document/${encodeURIComponent(doc_id)}?collection=${encodeURIComponent(collection)}`);
+    loadDocuments();
+  } catch (e) {
+    btn.disabled = false; btn.textContent = 'Löschen';
+    alert('Fehler: ' + e.message);
+  }
+}
+
+// ══════════════════════════════════════════════════════
+//  Helpers
+// ══════════════════════════════════════════════════════
+function esc(str) {
+  return String(str ?? '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function basename(p) { return (p || '').split(/[\\/]/).pop() || p; }
+</script>
+</body>
+</html>

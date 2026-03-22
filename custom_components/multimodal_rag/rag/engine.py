@@ -367,6 +367,18 @@ class RAGEngine:
         """
         return await self._db.list_collections()
 
+    async def list_documents(self, collection: str | None = None) -> list[dict]:
+        """List all unique documents in a collection.
+
+        Args:
+            collection: Collection name (uses default if None).
+
+        Returns:
+            List of dicts with document_id, source_file, document_type, chunk_count.
+        """
+        target_collection = collection or self._default_collection
+        return await self._db.list_documents(target_collection)
+
     async def delete_document(
         self, document_id: str, collection: str | None = None
     ) -> bool:

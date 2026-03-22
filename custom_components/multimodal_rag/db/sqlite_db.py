@@ -198,22 +198,69 @@ class SQLiteVectorProvider(VectorDBProvider):
         return await loop.run_in_executor(None, _search)
 
     async def delete(self, collection: str, document_id: str) -> None:
-        """Delete a document by ID.
+        """Delete all chunks of a document by its logical document ID.
 
         Args:
             collection: Collection name.
-            document_id: Document ID.
+            document_id: Logical document ID (matches metadata.document_id).
         """
         loop = asyncio.get_event_loop()
 
         def _delete():
             table = self._table_name(collection)
             with self._get_connection() as conn:
-                conn.execute(f"DELETE FROM {table} WHERE id=?", (document_id,))
+                # Delete chunks by metadata.document_id field
+                conn.execute(
+                    f"DELETE FROM {table} WHERE json_extract(metadata, '$.document_id')=?",
+                    (document_id,),
+                )
                 conn.commit()
 
         await loop.run_in_executor(None, _delete)
         _LOGGER.info("Deleted document %r from SQLite collection %r", document_id, collection)
+
+    async def list_documents(self, collection: str) -> list[dict]:
+        """Return one summary record per unique document in the collection.
+
+        Args:
+            collection: Collection name.
+
+        Returns:
+            List of dicts with document_id, source_file, document_type, chunk_count.
+        """
+        loop = asyncio.get_event_loop()
+
+        def _list() -> list[dict]:
+            table = self._table_name(collection)
+            with self._get_connection() as conn:
+                cursor = conn.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table,)
+                )
+                if not cursor.fetchone():
+                    return []
+                cursor = conn.execute(
+                    f"""
+                    SELECT
+                        json_extract(metadata, '$.document_id') AS document_id,
+                        json_extract(metadata, '$.source_file') AS source_file,
+                        json_extract(metadata, '$.document_type') AS document_type,
+                        COUNT(*) AS chunk_count
+                    FROM {table}
+                    GROUP BY document_id
+                    ORDER BY source_file
+                    """
+                )
+                return [
+                    {
+                        "document_id": row[0] or "",
+                        "source_file": row[1] or "",
+                        "document_type": row[2] or "unknown",
+                        "chunk_count": row[3],
+                    }
+                    for row in cursor.fetchall()
+                ]
+
+        return await loop.run_in_executor(None, _list)
 
     async def get(self, collection: str, document_id: str) -> DocumentRecord | None:
         """Retrieve a document by ID.

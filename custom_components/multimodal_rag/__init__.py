@@ -52,6 +52,7 @@ from .const import (
     VECTOR_DB_PROVIDER_QDRANT,
     VECTOR_DB_PROVIDER_SQLITE,
 )
+from .http_views import async_register_views
 from .services import async_register_services, async_unregister_services
 
 _LOGGER = logging.getLogger(__name__)
@@ -189,10 +190,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             "llm_provider": llm_provider,
             "embedding_provider": embedding_provider,
             "vector_db": vector_db,
+            "storage_path": storage_path,
         }
 
         # Register HA services
         async_register_services(hass)
+
+        # Register HTTP REST API views and the web panel
+        async_register_views(hass)
+        await _async_register_panel(hass)
 
         # Register update listener for options flow changes
         entry.async_on_unload(entry.add_update_listener(_async_update_listener))
@@ -205,6 +211,43 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         raise ConfigEntryNotReady(
             f"Multimodal RAG setup failed: {exc}"
         ) from exc
+
+
+async def _async_register_panel(hass: HomeAssistant) -> None:
+    """Register the static www/ path and the sidebar panel (idempotent).
+
+    The panel is an iframe that loads the self-contained panel.html served
+    directly from the integration's www/ directory.
+    """
+    import pathlib  # noqa: PLC0415
+
+    www_path = pathlib.Path(__file__).parent / "www"
+
+    # Serve static files at /multimodal_rag_panel/
+    hass.http.register_static_path(
+        "/multimodal_rag_panel",
+        str(www_path),
+        cache_headers=False,
+    )
+
+    # Add sidebar panel (only once — skip if already registered)
+    try:
+        from homeassistant.components.frontend import (  # noqa: PLC0415
+            async_register_built_in_panel,
+        )
+
+        async_register_built_in_panel(
+            hass,
+            component_name="iframe",
+            sidebar_title="Multimodal RAG",
+            sidebar_icon="mdi:brain",
+            frontend_url_path="multimodal-rag",
+            config={"url": "/multimodal_rag_panel/panel.html"},
+            require_admin=True,
+        )
+        _LOGGER.info("Multimodal RAG web panel registered at /multimodal_rag_panel/panel.html")
+    except Exception as exc:
+        _LOGGER.warning("Could not register sidebar panel: %s", exc)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

@@ -132,6 +132,19 @@ class VectorDBProvider(ABC):
         """
 
     @abstractmethod
+    async def list_documents(self, collection: str) -> list[dict]:
+        """Return a summary of all unique documents in a collection.
+
+        Groups chunks by document_id and returns one record per logical document.
+
+        Args:
+            collection: Collection name.
+
+        Returns:
+            List of dicts with keys: document_id, source_file, document_type, chunk_count.
+        """
+
+    @abstractmethod
     async def health_check(self) -> bool:
         """Verify the database is reachable.
 

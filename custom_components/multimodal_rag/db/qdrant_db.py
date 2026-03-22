@@ -251,6 +251,55 @@ class QdrantProvider(VectorDBProvider):
             collection=collection,
         )
 
+    async def list_documents(self, collection: str) -> list[dict]:
+        """Return one summary record per unique document in the collection.
+
+        Scrolls through all Qdrant points and groups by document_id payload field.
+
+        Args:
+            collection: Collection name.
+
+        Returns:
+            List of dicts with document_id, source_file, document_type, chunk_count.
+        """
+        client = self._get_client()
+        try:
+            existing = await client.get_collections()
+            if collection not in [c.name for c in existing.collections]:
+                return []
+        except Exception:
+            return []
+
+        docs: dict[str, dict] = {}
+        offset = None
+        while True:
+            results = await client.scroll(
+                collection_name=collection,
+                limit=100,
+                offset=offset,
+                with_payload=True,
+                with_vectors=False,
+            )
+            points, next_offset = results
+            for point in points:
+                payload = point.payload or {}
+                doc_id = payload.get("document_id") or payload.get("doc_id", "")
+                if not doc_id:
+                    continue
+                if doc_id not in docs:
+                    docs[doc_id] = {
+                        "document_id": doc_id,
+                        "source_file": payload.get("source_file", ""),
+                        "document_type": payload.get("document_type", "unknown"),
+                        "chunk_count": 0,
+                    }
+                docs[doc_id]["chunk_count"] += 1
+            if next_offset is None:
+                break
+            offset = next_offset
+
+        return sorted(docs.values(), key=lambda d: d["source_file"])
+
     async def health_check(self) -> bool:
         """Check if Qdrant is reachable."""
         try:
