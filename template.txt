@@ -1,0 +1,1 @@
+https://github.com/magicx78/ha-multimodal-rag/tree/main/custom_components/multimodal_rag
