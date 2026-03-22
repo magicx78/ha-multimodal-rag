@@ -1,54 +1,71 @@
-# 📋 Progress — multimodal-rag v1.0.1
+# 📋 Progress — multimodal-rag
 
-## Status: CRITICAL FIX IN PROGRESS
+## Status: WEB-PANEL IMPLEMENTIERT ✅
 
-**Startpunkt:** 2026-03-22 01:43 UTC
-**Letztes Update:** 2026-03-22 02:00 UTC
+**Letztes Update:** 2026-03-22 (Session claude/review-progress-notes-5x091)
 
 ---
 
-## 🚨 Issue: Config Flow Fehler
+## ✅ Abgeschlossen in dieser Session
 
-### Fehler
-```
-homeassistant.requirements.RequirementsNotFound:
-Requirements for multimodal_rag not found: ['sentence-transformers>=2.2.0'].
-```
+### Web-Interface (Referenz: Arnie936/multimodal-rag Streamlit-App)
 
-### Ursache
-- Zu viele große ML-Dependencies in manifest.json
-- Home Assistant kann diese nicht automatisch installieren
+| Datei | Beschreibung |
+|-------|-------------|
+| `http_views.py` | 6 REST-Endpoints unter `/api/multimodal_rag/` |
+| `www/panel.html` | Self-contained HTML-Panel (3 Tabs, Dark Mode) |
+| `db/base.py` | `list_documents()` abstract method hinzugefügt |
+| `db/sqlite_db.py` | `list_documents()` + Bugfix `delete()` (löschte falsche ID) |
+| `db/qdrant_db.py` | `list_documents()` via async scroll implementiert |
+| `rag/engine.py` | `list_documents()` Delegate |
+| `__init__.py` | Views, Static-Path & Sidebar-Panel registriert |
 
-### ✅ Lösung implementiert
-- **manifest.json bereinigt**: Reduziert auf nur essentielles:
-  - aiohttp>=3.9.0
-  - aiofiles>=23.0.0
-  - anthropic>=0.21.0
-  - pydantic>=2.0.0
-- Große Libraries (sentence-transformers, qdrant-client, PyMuPDF) werden jetzt lazy importiert
+### REST API Endpoints
+
+| Method | URL | Funktion |
+|--------|-----|----------|
+| GET | `/api/multimodal_rag/collections` | Collections auflisten |
+| GET | `/api/multimodal_rag/documents?collection=X` | Dokumente browsen |
+| POST | `/api/multimodal_rag/upload` | Datei hochladen & indexieren |
+| POST | `/api/multimodal_rag/search` | Semantische Suche |
+| POST | `/api/multimodal_rag/reason` | KI-Antwort (RAG) |
+| DELETE | `/api/multimodal_rag/document/{doc_id}` | Dokument löschen |
+
+### Web-Panel Features
+- **Tab 1 – Upload & Einbetten:** Drag & Drop, Fortschrittsbalken, Collection-Auswahl
+- **Tab 2 – Suchen:** Semantische Suche + KI-Antwort (RAG), Top-K & Score-Filter
+- **Tab 3 – Dokumente:** Tabellen-Browser mit Löschen-Button
+- Auth via Long-Lived Access Token (localStorage)
+- Sidebar-Eintrag in HA mit Icon `mdi:brain`
+- Panel erreichbar unter: `/multimodal_rag_panel/panel.html`
 
 ---
 
 ## 📦 Version Status
 
-| Projekt | Version | Manifest | Git Tag | GitHub Release |
-|---------|---------|----------|---------|----------------|
-| **multimodal-rag** | 1.0.1 | ✅ 1.0.1 | ✅ v1.0.1 | ✅ v1.0.1 |
-| **ha-scanservjs-addon** | 1.3.0 | ✅ 1.3.0 | ✅ v1.3.0 | - |
+| Komponente | Version | Branch |
+|------------|---------|--------|
+| multimodal-rag | 1.0.2 | `claude/review-progress-notes-5x091` |
 
 ---
 
-## 🔄 Nächste Schritte
+## 🐛 Bugfixes
 
-1. **Nutzer**: Home Assistant Neustart + HACS Multimodal RAG neu installieren
-2. **Koordinator**: Nach Installation erneut testen & validieren
-3. **Fallback**: Falls noch Fehler → weitere Dependencies aus manifest.json entfernen
+- **SQLite `delete()`** war fehlerhaft: löschte nach Primary-Key (`id`) statt nach `metadata.document_id` → alle Chunks eines Dokuments werden jetzt korrekt entfernt
 
 ---
 
-## 📝 Implementierte Änderungen
+## 🔄 Frühere Session (v1.0.1)
 
-- ✅ manifest.json dependencies reduziert (4 statt 11)
-- ✅ Versioning synchronisiert (1.0.1)
-- ✅ GitHub Release v1.0.1 erstellt
-- ✅ ha-scanservjs-addon v1.3.0 validiert
+- manifest.json dependencies reduziert (4 statt 11) — Fix für RequirementsNotFound
+- Große Libraries (sentence-transformers, qdrant-client, PyMuPDF) lazy importiert
+- GitHub Release v1.0.1 erstellt
+
+---
+
+## 📌 Nächste mögliche Schritte
+
+- [ ] Tests für `list_documents` und HTTP-Views schreiben
+- [ ] Upload-Fortschritt via SSE (Server-Sent Events) für große Dateien
+- [ ] Panel-Token aus HA-Session automatisch auslesen (postMessage)
+- [ ] HACS-Release v1.1.0 erstellen
