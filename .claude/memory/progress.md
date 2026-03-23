@@ -405,13 +405,43 @@ All pushed to GitHub ✅
 2026-03-21: v1.0.1 Bug fixes
 2026-03-22 (Early): v1.0.2 Dependency fix
 2026-03-22 (Mid): v1.0.3 Coordinator System
-2026-03-22 (Now): v1.1.0 Web-UI Complete ← YOU ARE HERE 🎉
+2026-03-22 (Late): v1.1.0 Web-UI Complete
+2026-03-23: v1.1.1 HACS Tag Fix ← YOU ARE HERE 🎉
 ```
 
 ---
 
-**Coordinator:** All phases complete
+## 🔧 HOTFIX SESSION (2026-03-23) — HACS Installation Error
+
+### Problem:
+HACS installation failing with: `No manifest.json file found 'custom_components/None/manifest.json'`
+
+**Root Cause (Identified):**
+- v1.1.1 tag was pointing to commit `f31489a` (manifest.json version="1.1.0")
+- Current HEAD was `1b2c455` (manifest.json version="1.1.1")
+- Version mismatch: HACS tag ≠ manifest.json version
+
+### Solution Implemented:
+✅ **Step 1:** Deleted incorrect v1.1.1 tag locally
+✅ **Step 2:** Created new v1.1.1 tag pointing to correct commit (1b2c455)
+✅ **Step 3:** Force-pushed updated tag to GitHub
+✅ **Step 4:** Recreated GitHub Release v1.1.1 with fresh assets
+
+### Verification:
+```
+v1.1.0 tag: manifest.json version = "1.1.0" ✓
+v1.1.1 tag: manifest.json version = "1.1.1" ✓
+GitHub Release: Recreated at 2026-03-23T16:19:36Z
+```
+
+### Status:
+✅ **FIXED** — HACS should now download v1.1.1 correctly
+- Users can now install via: HACS → Custom Repositories → Add repository
+
+---
+
+**Coordinator:** All phases complete + HACS hotfix applied
 **Validator Agent:** Approved for production
-**Status:** Ready to deploy
-**Recommendation:** Push to production
+**Status:** Ready to deploy - HACS compatible
+**Recommendation:** Users can now install via HACS
 
